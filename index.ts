@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import path from "node:path";
 import csvParser from "csv-parser";
 import languageEncoding from "detect-file-encoding-and-language";
 import Zip from "adm-zip";
@@ -8,8 +9,8 @@ type Product = {
   storeTrigram: string;
 };
 
-const outputFolder = "./output";
-const chunksFolder = `${outputFolder}/chunks`;
+const outputFolder = path.join("output");
+const chunksFolder = path.join(outputFolder, "chunks");
 
 function parseWithMap(array: Product[]) {
   console.time("parseWithMap");
@@ -82,7 +83,7 @@ async function createChunkedFiles(array: Product[]) {
 
   const chunkPromises = chunks.map((chunk, index) => {
     fs.promises.writeFile(
-      `${chunksFolder}/chunk-${index + 1}.json`,
+      path.join(chunksFolder, `chunk-${index + 1}.json`),
       JSON.stringify(chunk)
     );
   });
@@ -92,8 +93,8 @@ async function createChunkedFiles(array: Product[]) {
 
 async function zipFiles() {
   const zip = new Zip();
-  zip.addLocalFolder(chunksFolder);
-  zip.writeZip(`${outputFolder}/products.zip`);
+  await zip.addLocalFolderPromise(chunksFolder, {});
+  await zip.writeZipPromise(path.join(outputFolder, "products.zip"));
 }
 
 async function main() {
@@ -101,11 +102,11 @@ async function main() {
   const payload = await removeDuplicates(parseWithMap);
 
   console.log(
-    "That was cool, now I'm creating chunked files 🚀 in ./output/chunks"
+    `That was cool, now I'm creating chunked files 🚀 in ${chunksFolder}`
   );
   await createChunkedFiles(payload);
 
-  zipFiles();
+  await zipFiles();
 
   console.log("Done! 🎉");
 }
